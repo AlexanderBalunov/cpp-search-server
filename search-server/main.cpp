@@ -135,13 +135,18 @@ private:
         }
         return query;
     }
+
+    double GetInverseDocumentFrequency(const string& word) const {
+        double inverse_doc_freq = log(document_count_ / static_cast<double>(word_to_document_freqs_.at(word).size()));
+        return inverse_doc_freq;
+    }
     
     vector<Document> FindAllDocuments(const Query& query) const {
         vector<Document> matched_documents;
         map <int, double> document_to_relevance;
         for (const string& plus_word : query.plus_words) {
             if (word_to_document_freqs_.count(plus_word) == 1) {
-                double inverse_doc_freq = log(document_count_ / static_cast<double>(word_to_document_freqs_.at(plus_word).size()));
+                double inverse_doc_freq = GetInverseDocumentFrequency(plus_word);
                 for (const auto& [id_document, term_freq] : word_to_document_freqs_.at(plus_word)) {
                     document_to_relevance[id_document] += term_freq * inverse_doc_freq;
                 }
