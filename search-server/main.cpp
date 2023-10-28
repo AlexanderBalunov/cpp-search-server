@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <numeric>
 #include <map>
 #include <set>
 #include <string>
@@ -10,6 +11,7 @@
 using namespace std;
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
+const double EPSILON = 1e-6;
 
 string ReadLine() {
     string s;
@@ -80,19 +82,8 @@ public:
 
     vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status) const {
         return FindTopDocuments(raw_query, [status](int document_id, DocumentStatus doc_status, int rating) {
-            switch (status) {
-            case DocumentStatus::ACTUAL:
-                return doc_status == DocumentStatus::ACTUAL;
-            case DocumentStatus::IRRELEVANT:
-                return doc_status == DocumentStatus::IRRELEVANT;
-            case DocumentStatus::BANNED:
-                return doc_status == DocumentStatus::BANNED;
-            case DocumentStatus::REMOVED:
-                return doc_status == DocumentStatus::REMOVED;
-            default:
-                return false;
-            } 
-        });
+                                               return status == doc_status;
+                                           });
     }
 
     template <typename Filter>
@@ -102,11 +93,8 @@ public:
 
         sort(matched_documents.begin(), matched_documents.end(),
             [](const Document& lhs, const Document& rhs) {
-                if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
-                    return lhs.rating > rhs.rating;
-                } else {
-                    return lhs.relevance > rhs.relevance;
-                }
+                return (std::abs(lhs.relevance - rhs.relevance) >= EPSILON && lhs.relevance > rhs.relevance)
+                    || (std::abs(lhs.relevance - rhs.relevance) < EPSILON && lhs.rating > rhs.rating);
             });
         if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
             matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
@@ -169,11 +157,7 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
-        return rating_sum / static_cast<int>(ratings.size());
+        return accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size());
     }
 
     struct QueryWord {
