@@ -123,15 +123,8 @@ public:
         if (CheckPresenceControlCharacter(raw_query)) {
             throw invalid_argument("Invalid characters in the search query words"s);
         }
-        
-        if (CheckPresenceMinusWithoutWord(raw_query)) {
-            throw invalid_argument("No text after the \"minus\" symbol in the search query"s);
-        }
-       
+              
         const Query query = ParseQuery(raw_query);
-        if (CheckMinusWordsOnDoubleMinus(query)) {
-            throw invalid_argument("More than one minus sign before words that must not be in the required documents"s);
-        }
         
         auto matched_documents = FindAllDocuments(query, document_predicate);
         sort(matched_documents.begin(), matched_documents.end(),
@@ -162,26 +155,16 @@ public:
     }
     
     int GetDocumentId(int index) const {
-        if (index < 0 || index >= GetDocumentCount()) {
-            throw out_of_range("Index of the passed document goes out the range [0; number of documents)"s);
-        }
-        return ids_in_the_order_of_adding_documents_[index];
+        return ids_in_the_order_of_adding_documents_.at(index);
     }    
 
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
         if (CheckPresenceControlCharacter(raw_query)) {
             throw invalid_argument("Invalid characters in the search query words"s);
         }
-        
-        if (CheckPresenceMinusWithoutWord(raw_query)) {
-            throw invalid_argument("No text after the \"minus\" symbol in the search query"s);
-        }
-        
+                
         const Query query = ParseQuery(raw_query);
-        if (CheckMinusWordsOnDoubleMinus(query)) {
-            throw invalid_argument("More than one minus sign before words that must not be in the required documents"s);
-        }        
-        
+              
         vector<string> matched_words;
         for (const string& word : query.plus_words) {
             if (word_to_document_freqs_.count(word) == 0) {
@@ -242,11 +225,17 @@ private:
     };
 
     QueryWord ParseQueryWord(string text) const {
+        if (text == "-"s) {
+            throw invalid_argument("No word after the \"minus\" symbol in the search query"s);
+        }
         bool is_minus = false;
         if (text[0] == '-') {
-            is_minus = true;
             text = text.substr(1);
-        }
+            if (text[0] == '-') { 
+                throw invalid_argument("More than one minus sign before words that must not be in the required documents"s); 
+            }
+            is_minus = true;
+        } 
         return {text, is_minus, IsStopWord(text)};
     }
 
@@ -279,23 +268,6 @@ private:
         return false;
     }
     
-    static bool CheckPresenceMinusWithoutWord(const string& text) {
-        const auto& words = SplitIntoWords(text);
-        if (count(words.begin(), words.end(), "-"s)) {
-            return true;
-        }
-        return false;
-    }
-    
-    bool CheckMinusWordsOnDoubleMinus(const Query& query_words) const {
-        for (const string& minus_word : query_words.minus_words) {
-            if (minus_word[0] == '-') {
-                return true;
-            }
-        }
-        return false;
-    }
-
     double ComputeWordInverseDocumentFreq(const string& word) const {
         return log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
     }
