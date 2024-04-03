@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 
-//using namespace std; сугубо для того, чтобы решение прошло тесты в тренажере
+//using namespace std; сугубо для того, чтобы тесты в тренажере решение прошло
 using namespace std;
 
 int main() {
@@ -55,3 +55,4 @@ int main() {
     
     return 0;
 }
+
